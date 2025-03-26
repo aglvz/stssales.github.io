@@ -20,6 +20,9 @@ class DatabaseSeeder extends Seeder
         //     'name' => 'Test User',
         //     'email' => 'test@example.com',
         // ]);
-        Productos::factory(10)->create();
+        //Productos::factory(10)->create();
+        $this->call([
+            CatalagosSeeder::class,
+        ]);
     }
 }

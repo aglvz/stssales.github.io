@@ -173,7 +173,7 @@ export default function Productos({ productos,combos}) {
 
     function Createedit({products,selects}) {
         const [values, setValues] = useState({
-            idproducto: 0,
+            idproducto: '',
             clave: '',
             producto: '',
             descripcion: '',
@@ -228,7 +228,7 @@ export default function Productos({ productos,combos}) {
         return (
                 
                     <Form onSubmit={handleSubmit} encType="multipart/form-data">
-                        <Form.Control type="hidden" id="idproducto" name="idproducto" value={values.idproducto} />
+                        <Form.Control type="text" id="idproducto" name="idproducto" value={values.idproducto} />
                         <Row>
                             <Col md={6}>
                             <Form.Label htmlFor="idproveedor">Proveedor:</Form.Label>

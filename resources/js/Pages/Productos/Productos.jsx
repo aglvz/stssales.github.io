@@ -38,14 +38,12 @@ export default function Productos({ productos,combos}) {
     const [nottit,setNottit]=useState("");
     const [notmes,setNotmes]=useState("");
     const table = useRef();
-  
+
     const styles = StyleSheet.create({
         page: {
             flexDirection: 'column',
             backgroundColor: '#fff',
-            padding: 40,
-            borderColor: '#000',
-            borderWidth: 1,
+            padding: 30,
             
         },
         sectionheader: {
@@ -104,6 +102,10 @@ export default function Productos({ productos,combos}) {
             fontSize: 18,
             
         },
+        buttom: {
+            fontSize: 18,
+            cursor: 'pointer',
+        }
     });
 
     const ProductPDF = ({ product }) => (
@@ -181,8 +183,9 @@ export default function Productos({ productos,combos}) {
             stock: '',
             idcategoria: 0,
             idmarca: 0,
-            idproveedor: 0
+            idproveedor: 0,
         });
+        const [precios, setprecios] = useState([]);
         const [combos, setCombos] = useState(selects);
         useEffect(() => {
             setCombos(selects);
@@ -204,6 +207,23 @@ export default function Productos({ productos,combos}) {
         function handleChange(e) {
             const { name, value } = e.target;
             setValues({ ...values, [name]: value });
+        }
+        function precioChange(e) {
+            const { name, value } = e.target;
+            setprecios({ ...precios, [name]: value });
+            var ganancia,compra,precio;
+            if (name === 'ganacia') {
+                ganancia = parseFloat(value);
+                compra = parseFloat(precios.compra);
+                precio = (compra*1.16)* (ganancia);
+                setValues({ ...values, ['precio']: precio.toFixed(2) });
+            }
+            if (name === 'compra') {
+                compra = parseFloat(value);
+                ganancia = parseFloat(precios.ganacia);
+                precio = (compra*1.16)* (ganancia);
+                setValues({ ...values, ['precio']: precio.toFixed(2) });
+            }
         }
 
         function handleSelectChange(name, selectedOption) {
@@ -228,7 +248,7 @@ export default function Productos({ productos,combos}) {
         return (
                 
                     <Form onSubmit={handleSubmit} encType="multipart/form-data">
-                        <Form.Control type="text" id="idproducto" name="idproducto" value={values.idproducto} />
+                        <Form.Control type="hidden" id="idproducto" name="idproducto" value={values.idproducto} />
                         <Row>
                             <Col md={6}>
                             <Form.Label htmlFor="idproveedor">Proveedor:</Form.Label>
@@ -255,6 +275,10 @@ export default function Productos({ productos,combos}) {
                                 options={combos.marca}
                                 onChange={(selectedOption) => handleSelectChange('idmarca', selectedOption)}
                                 placeholder="Seleccionar marca" />
+                                <Form.Label htmlFor="ganacia">Porcentaje de ganacia:</Form.Label>
+                                <Form.Control type="text" id="ganacia" name="ganacia" onChange={precioChange} />
+                                <Form.Label htmlFor="compra">Precio Compra:</Form.Label>
+                                <Form.Control type="text" id="compra" name="compra"  onChange={precioChange} />
                             </Col>
                             <Col md={6}>
                                 <Form.Label htmlFor="clave">Clave:</Form.Label>
@@ -347,84 +371,93 @@ export default function Productos({ productos,combos}) {
               });
             router.get('/productos');
     }
-
-    
-    
     return (
         <AuthenticatedLayout>
             <Head title="Productos" />
-            <Container>
-                <Row>
-                    <Col md={12} >   
-                    <Card>
-                        <Card.Header as="h5" className="text-center">Productos</Card.Header>
-                    <Card.Body>
-                    <Button variant="primary" size="sm" onClick={() => addProducto()}>
-                        <FontAwesomeIcon icon="fa-solid fa-plus" /> Agregar
-                    </Button>
-                    <DataTable className="table table-bordered table-striped table-sm" id="productos" 
-                    ref={table}
-                    options={{
-                        language: {
-                            url: 'https://cdn.datatables.net/plug-ins/2.1.7/i18n/es-MX.json',
-                        },
-                        layout: {
-                            topStart: 'search',
-                            topEnd: null,
-                            bottomEnd: {
-                                paging: {
-                                    firstLast: false,
-                                    type: 'numbers'
-                                }
-                            },
-                            bottomStart: 'info',
-                           
-                        },
-                        destroy: true,
-                        responsive: true,
-                    }}
-                    >
-                        <thead>
-                            <tr>
-                            <th className='text-center'>Clave</th>
-                                <th className='text-center'>Producto</th>
-                                <th className='text-center'>Precio</th>
-                                <th className='text-center'>Stock</th>
-                                <th className='text-center' style={{width: 15,}}> </th>
-                                <th className='text-center' style={{width: 15,}}></th>
-                                <th className='text-center' style={{width: 15,}}></th>
-                            </tr>
-                        </thead>
-                        <tbody>      
-                            { productos.map( (item) => (
-                                    <tr key={item.idproducto}>
-                                        <td className='text-start'>{item.clave}</td>
-                                        <td className='text-start'>{item.producto}</td>
-                                        <td className='text-end'>{item.precio}</td>
-                                        <td className='text-center'>{item.stock}</td>
-                                        <td className='text-center' style={{width: 15,}}><FontAwesomeIcon icon="fa-solid fa-pen-to-square" onClick={() => getProducto(item.idproducto)}/></td>
-                                        <td className='text-center' style={{width: 15,}}><FontAwesomeIcon icon="fa-solid fa-trash" onClick={() => deleteProducto(item.idproducto)}/></td>
-                                        <td className='text-center' style={{width: 15,}}>
-                                            <PDFDownloadLink
-                                                document={<ProductPDF product={item} />}
-                                                fileName={`${item.producto}.pdf`}
-                                            >
-                                                {({ loading }) =>
-                                                    loading ? "Generando PDF..." : (
-                                                        <FontAwesomeIcon icon="fa-solid fa-print" />
-                                                    )
+            <div className="py-4">
+                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                        <div className="p-6 text-gray-900">
+                            <Container>
+                                <Row>
+                                    <Col md={12} >   
+                                    {/* <Card>
+                                        <Card.Header as="h5" className="text-center">Productos</Card.Header>
+                                    <Card.Body> */}
+                                    <Button variant="primary" size="sm" onClick={() => addProducto()}>
+                                        <FontAwesomeIcon icon="fa-solid fa-plus" /> Agregar
+                                    </Button>
+                                    <DataTable className="table table-bordered table-striped table-sm" id="productos" 
+                                    ref={table}
+                                    options={{
+                                        language: {
+                                            url: 'https://cdn.datatables.net/plug-ins/2.1.7/i18n/es-MX.json',
+                                        },
+                                        layout: {
+                                            topStart: 'search',
+                                            topEnd: null,
+                                            bottomEnd: {
+                                                paging: {
+                                                    firstLast: false,
+                                                    type: 'numbers'
                                                 }
-                                            </PDFDownloadLink>
-                                        </td>
-                                    </tr>
-                            )) }
-                        </tbody>
-                    </DataTable>
-                    </Card.Body>
-                    </Card>
-                    </Col>
-                </Row>
-            </Container>
+                                            },
+                                            bottomStart: 'info',
+                                        
+                                        },
+                                        destroy: true,
+                                        responsive: true,
+                                    }}
+                                    >
+                                        <thead>
+                                            <tr>
+                                            <th className='text-center' style={{width: '18%',}}>Clave</th>
+                                                <th className='text-center'>Producto</th>
+                                                <th className='text-center' style={{width: '10%',}}>Precio</th>
+                                                <th className='text-center' style={{width: '8%',}}>Stock</th>
+                                                <th className='text-center' style={{width: '5%',}}> </th>
+                                                <th className='text-center' style={{width: '5%',}}></th>
+                                                <th className='text-center' style={{width: '5%',}}></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>      
+                                            { productos.map( (item) => (
+                                                    <tr key={item.idproducto}>
+                                                        <td className='text-start' style={{width: '18%',}}>{item.clave}</td>
+                                                        <td className='text-start'>{item.producto}</td>
+                                                        <td className='text-end' style={{width: '10%',}}>{item.precio.toLocaleString("es-MX", {
+                                                                                    style: "currency", 
+                                                                                    currency: "MXN" 
+                                                                                    })}
+                                                        </td>
+                                                        <td className='text-center' style={{width: '8%',}}>{item.stock}</td>
+                                                        <td className='text-center' style={{width: '5%',}}><FontAwesomeIcon  style={styles.buttom} icon="fa-solid fa-pen-to-square" onClick={() => getProducto(item.idproducto)}/></td>
+                                                        <td className='text-center' style={{width: '5%',}}><FontAwesomeIcon  style={styles.buttom} icon="fa-solid fa-trash" onClick={() => deleteProducto(item.idproducto)}/></td>
+                                                        <td className='text-center' style={{width: '5%',}}>
+                                                            <PDFDownloadLink style={styles.buttom}
+                                                                document={<ProductPDF product={item} />}
+                                                                fileName={`${item.producto}.pdf`}
+                                                            >
+                                                                {({ loading }) =>
+                                                                    loading ? <FontAwesomeIcon icon="fa-solid fa-print" /> : (
+                                                                        <FontAwesomeIcon icon="fa-solid fa-print" />
+                                                                    )
+                                                                }
+                                                            </PDFDownloadLink>
+                                                        </td>
+                                                    </tr>
+                                            )) }
+                                        </tbody>
+                                    </DataTable>
+                                    {/* </Card.Body>
+                                    </Card> */}
+                                    </Col>
+                                </Row>
+                            </Container>
+                            </div>
+                    </div>
+                </div>
+            </div>
             <Modaladd show={modalShow} title={title} onHide={() => setModalShow(false)} >
                 <Createedit products={producto} selects={combos}/>
             </Modaladd>

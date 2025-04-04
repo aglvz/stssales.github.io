@@ -32,11 +32,13 @@ export default function AuthenticatedLayout({ header, children }) {
                                 </NavLink>
                                 <NavLink
                                     href={route('productos.index')}
+                                    active={route().current('productos.index')}
                                 >
                                     Productos
                                 </NavLink>
                                 <NavLink
-                                   
+                                   href={route('cotizaciones.index')}
+                                   active={route().current('cotizaciones.index')}
                                 >
                                     Cotizaciones
                                 </NavLink>
@@ -145,15 +147,17 @@ export default function AuthenticatedLayout({ header, children }) {
                             Dashboard
                         </ResponsiveNavLink>
                         <ResponsiveNavLink
-                                    href={route('productos.index')}
-                                >
-                                    Productos
-                                </ResponsiveNavLink>
-                                <ResponsiveNavLink
-                                   
-                                >
-                                    Cotizaciones
-                                </ResponsiveNavLink>
+                            href={route('productos.index')}
+                            active={route().current('productos.index')}
+                        >
+                            Productos
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink 
+                            href={route('cotizaciones.index')}
+                            active={route().current('cotizaciones.index')}
+                        >
+                            Cotizaciones
+                        </ResponsiveNavLink>
                     </div>
 
                     <div className="border-t border-gray-200 pb-1 pt-4">

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CotizacionesController;
 use App\Http\Controllers\ProductosController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
@@ -27,14 +28,22 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/productos', [ProductosController::class, 'index'])->name('productos.index');
-    Route::get('/productos/all', [ProductosController::class, 'allproductos'])->name('productos.allproductos');
-    Route::get('/productos/create', [ProductosController::class, 'create'])->name('productos.create');
     Route::post('/productos', [ProductosController::class, 'store'])->name('productos.store');
-    Route::get('/productos/show/{productos}', [ProductosController::class, 'show'])->name('productos.show');
     Route::get('/productos/{productos}/edit', [ProductosController::class, 'edit'])->name('productos.edit');
     Route::put('/productos/{productos}', [ProductosController::class, 'update'])->name('productos.update');
     Route::delete('/productos/{productos}', [ProductosController::class, 'destroy'])->name('productos.destroy');
     Route::get('/productos/combos', [ProductosController::class, 'combos'])->name('productos.combos');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('/cotizaciones', [CotizacionesController::class, 'index'])->name('cotizaciones.index');
+    Route::post('/cotizaciones', [CotizacionesController::class, 'store'])->name('cotizaciones.store');
+    Route::post('/cotizaciones/detalle', [CotizacionesController::class, 'detalle'])->name('cotizaciones.detalle');
+    Route::get('/cotizaciones/{cotizacion}/edit', [CotizacionesController::class, 'edit'])->name('cotizaciones.edit');
+    Route::get('/cotizaciones/{cotizacion}/det', [CotizacionesController::class, 'det'])->name('cotizaciones.det');
+    Route::put('/cotizaciones/{cotizacion}', [CotizacionesController::class, 'update'])->name('cotizaciones.update');
+    Route::delete('/cotizaciones/{cotizacion}', [CotizacionesController::class, 'destroy'])->name('cotizaciones.destroy');
+    Route::delete('/cotizaciones/det/{idcotdet}/{idcot}', [CotizacionesController::class, 'destroydet'])->name('cotizaciones.destroydet');
 });
 
 

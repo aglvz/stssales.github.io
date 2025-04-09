@@ -1,6 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
-import { router } from '@inertiajs/react';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
@@ -47,7 +46,7 @@ export default function Cotizaciones({ cotizaciones,productos}) {
         },
         sectionfooter: {
             flexDirection: 'row',
-            fontSize: 9,
+            fontSize: 8,
             marginTop: 'auto', // Mover el pie de página al final
             justifyContent: 'space-between',
         },
@@ -493,7 +492,7 @@ export default function Cotizaciones({ cotizaciones,productos}) {
                                 <Text style={styles.text}>No. Cot.</Text>
                             </View>
                             <View >
-                                <Text style={styles.text}>{cotizacion.idcotizacion}</Text>
+                                <Text style={styles.text}>{moment().format("MM") + cotizacion.idcotizacion+moment().format("YY")}</Text>
                             </View>
                             <View style={{ fontWeight: 'bold'}}>
                                 <Text style={styles.text}>Fecha</Text>
@@ -505,7 +504,7 @@ export default function Cotizaciones({ cotizaciones,productos}) {
                     </View>
                     <View style={{ marginTop: 10, borderWidth: 1, borderColor: '#000' }}>
                         <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderColor: '#000', padding: 3 }}>
-                            <Text style={{ flex: 2, fontSize: 10, fontWeight: 'bold' }}>Producto</Text>
+                            <Text style={{ flex: 3, fontSize: 10, fontWeight: 'bold' }}>Producto</Text>
                             <Text style={{ flex: 1, fontSize: 10, fontWeight: 'bold', textAlign: 'center' }}>Cantidad</Text>
                             <Text style={{ flex: 1, fontSize: 10, fontWeight: 'bold', textAlign: 'center' }}>Precio</Text>
                             <Text style={{ flex: 1, fontSize: 10, fontWeight: 'bold', textAlign: 'center' }}>Descuento</Text>
@@ -513,7 +512,11 @@ export default function Cotizaciones({ cotizaciones,productos}) {
                         </View>
                         {detalles.map((detalle, index) => (
                             <View key={index} style={{ flexDirection: 'row', padding: 3 }}>
-                                <Text style={{ flex: 2, fontSize: 10 }}>{detalle.producto}</Text>
+                                <Text style={{ flex: 3, fontSize: 10 }}>
+                                    {detalle.producto}
+                                    {"\n"}
+                                    <Text style={{ fontSize:8 }}>{detalle.descripcion}</Text>
+                                </Text>
                                 <Text style={{ flex: 1, fontSize: 10, textAlign: 'center' }}>{detalle.cantidad}</Text>
                                 <Text style={{ flex: 1, fontSize: 10, textAlign: 'right' }}>{detalle.precio.toFixed(2)}</Text>
                                 <Text style={{ flex: 1, fontSize: 10, textAlign: 'right' }}>{detalle.descuento.toFixed(2)}</Text>
@@ -538,7 +541,7 @@ export default function Cotizaciones({ cotizaciones,productos}) {
                         </View>
                     </View>
                     <View style={styles.sectionfooter}>
-                        <View style={{ flex: 1, textAlign: 'left' }}>
+                        <View style={{ flex: 2, textAlign: 'left' }}>
                             <View style={styles.section}>
                                 <Text>iscgalvez@gmail.com</Text>
                             </View>
@@ -557,8 +560,8 @@ export default function Cotizaciones({ cotizaciones,productos}) {
                                 />
                             </View>
                         </View>
-                        <View style={{ flex: 1, alignItems: 'flex-end',  textAlign: 'right' }}>
-                            <View style={styles.section}><Text style={{ textAlign: 'right'  }}>Precio de cotizacion valida por 2 dias.</Text></View>
+                        <View style={{ flex: 2, alignItems: 'flex-end',  textAlign: 'right' }}>
+                            <View style={styles.section}><Text style={{ textAlign: 'right'  }}>Cotizacion valida por 2 dias en caso de articulos o equipos.</Text></View>
                             <View style={styles.section}><Text style={{ textAlign: 'right'  }}>Todo trabajo requiere el 50% de anticipo.</Text></View>
                         </View>
                     </View>
@@ -619,12 +622,12 @@ export default function Cotizaciones({ cotizaciones,productos}) {
                                                         <td className='text-center' style={{width: '10%',}}>{item.idcotizacion}</td>
                                                         <td className='text-start'>{item.nombre_cliente}</td>
                                                         <td className='text-center' style={{width: '10%',}}>{ moment(item.created_at).format("DD/MM/YYYY") }</td>
-                                                        <td className='text-center' style={{width: '5%',}}><FontAwesomeIcon  style={styles.buttom} icon="fa-solid fa-pen-to-square" onClick={() => getCotizacion(item.idcotizacion)}/></td>
-                                                        <td className='text-center' style={{width: '5%',}}><FontAwesomeIcon  style={styles.buttom} icon="fa-solid fa-trash" onClick={() => deleteCotizacion(item.idcotizacion)}/></td>
-                                                        <td className='text-center' style={{width: '5%',}}><FontAwesomeIcon icon="fa-solid fa-cart-plus" style={styles.buttom} onClick={() => detCotizacion(item.idcotizacion)}/></td>
+                                                        <td className='text-center' style={{width: '5%',}}><Button variant="link" onClick={() => getCotizacion(item.idcotizacion)}><FontAwesomeIcon style={styles.buttom} icon="fa-solid fa-pen-to-square" /></Button></td>
+                                                        <td className='text-center' style={{width: '5%',}}><Button variant="link" onClick={() => deleteCotizacion(item.idcotizacion)}><FontAwesomeIcon  style={styles.buttom} icon="fa-solid fa-trash" /></Button></td>
+                                                        <td className='text-center' style={{width: '5%',}}><Button variant="link" onClick={() => detCotizacion(item.idcotizacion)}><FontAwesomeIcon icon="fa-solid fa-cart-plus" style={styles.buttom} /></Button></td>
                                                         <td className='text-center' style={{width: '5%',}}>
                                                             <PDFDownloadLink
-                                                                document={<CotizacionPDF cotizacion={item} detalles={det.filter(d => d.idcotizacion === item.idcotizacion)} />}
+                                                                document={<CotizacionPDF cotizacion={item} detalles={det.filter(d => d.idcotizacion === item.idcotizacion)}/>}
                                                                 fileName={`Cotizacion_${item.idcotizacion}.pdf`}
                                                                 style={styles.buttom}
                                                             >

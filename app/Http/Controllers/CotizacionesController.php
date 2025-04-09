@@ -60,6 +60,7 @@ class CotizacionesController extends Controller
                                         'cantidad',
                                         'precio',
                                         'descuento',
+                                        'descripcion',
                                         DB::raw('(select producto from productos where idproducto=cotizaciones_detalle.idproducto) as producto')
                                     )
                                     ->get();
@@ -133,7 +134,8 @@ class CotizacionesController extends Controller
                                         'cantidad',
                                         'precio',
                                         'descuento',
-                                        DB::raw('(select producto from productos where idproducto=cotizaciones_detalle.idproducto) as producto')
+                                        DB::raw('(select producto from productos where idproducto=cotizaciones_detalle.idproducto) as producto'),
+                                        DB::raw('(select descripcion from productos where idproducto=cotizaciones_detalle.idproducto) as descripcion')
                                     )
                                     ->get();
         return response()->json($detalles);

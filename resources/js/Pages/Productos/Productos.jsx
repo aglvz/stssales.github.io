@@ -431,8 +431,8 @@ export default function Productos({ productos,combos}) {
                                                                                     })}
                                                         </td>
                                                         <td className='text-center' style={{width: '8%',}}>{item.stock}</td>
-                                                        <td className='text-center' style={{width: '5%',}}><FontAwesomeIcon  style={styles.buttom} icon="fa-solid fa-pen-to-square" onClick={() => getProducto(item.idproducto)}/></td>
-                                                        <td className='text-center' style={{width: '5%',}}><FontAwesomeIcon  style={styles.buttom} icon="fa-solid fa-trash" onClick={() => deleteProducto(item.idproducto)}/></td>
+                                                        <td className='text-center' style={{width: '5%',}}><Button variant="link" onClick={() => getProducto(item.idproducto)}><FontAwesomeIcon  style={styles.buttom} icon="fa-solid fa-pen-to-square" /></Button></td>
+                                                        <td className='text-center' style={{width: '5%',}}><Button variant="link"  onClick={() => deleteProducto(item.idproducto)}><FontAwesomeIcon  style={styles.buttom} icon="fa-solid fa-trash"/></Button></td>
                                                         <td className='text-center' style={{width: '5%',}}>
                                                             <PDFDownloadLink style={styles.buttom}
                                                                 document={<ProductPDF product={item} />}

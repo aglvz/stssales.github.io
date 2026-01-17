@@ -529,11 +529,11 @@ export default function Cotizaciones({ cotizaciones,productos}) {
                     <View style={{marginTop: 10,  padding: 3 }}>
                         <View style={{ flexDirection: 'row',}}>
                             <Text style={{ flex: 4, fontSize: 10, fontWeight: 'bold', alignItems: 'flex-end',  textAlign: 'right'}}>SubTotal</Text>
-                            <Text style={{ flex: 1, fontSize: 12, fontWeight: 'bold', alignItems: 'flex-end',  textAlign: 'right'}}>$ {(detalles.reduce((acc, detalle) => acc + (detalle.cantidad * detalle.precio - detalle.descuento), 0)).toFixed(2)}</Text>
+                            <Text style={{ flex: 1, fontSize: 12, fontWeight: 'bold', alignItems: 'flex-end',  textAlign: 'right'}}>$ {((detalles.reduce((acc, detalle) => acc + ((detalle.cantidad * detalle.precio - detalle.descuento)), 0))).toFixed(2)}</Text>
                         </View>
                         <View style={{ flexDirection: 'row',}}>
                             <Text style={{ flex: 4, fontSize: 10, fontWeight: 'bold', alignItems: 'flex-end',  textAlign: 'right'}}>IVA</Text>
-                            <Text style={{ flex: 1, fontSize: 12, fontWeight: 'bold', alignItems: 'flex-end',  textAlign: 'right'}}>$ 0.00</Text>
+                            <Text style={{ flex: 1, fontSize: 12, fontWeight: 'bold', alignItems: 'flex-end',  textAlign: 'right'}}>$ {'0.00'}</Text>
                         </View>
                         <View style={{ flexDirection: 'row',}}>
                             <Text style={{ flex: 4, fontSize: 10, fontWeight: 'bold', alignItems: 'flex-end',  textAlign: 'right'}}>Total</Text>

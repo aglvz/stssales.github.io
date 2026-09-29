@@ -1,14 +1,12 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
-import { router } from '@inertiajs/react';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
 import "bootstrap/dist/css/bootstrap.min.css";
-import React, { useState, useEffect, useRef} from 'react';
+import React, { useState, useEffect, useRef, useMemo} from 'react';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
-import Card from 'react-bootstrap/Card';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
@@ -16,162 +14,194 @@ import Form from 'react-bootstrap/Form';
 import Select from 'react-select'
 import Toast from 'react-bootstrap/Toast';
 import ToastContainer from 'react-bootstrap/ToastContainer';
-import Image from 'react-bootstrap/Image'
 import CloseButton from 'react-bootstrap/CloseButton';
 
+import $ from 'jquery';
 import DataTable from 'datatables.net-react';
 import DT from 'datatables.net-bs5';
 import 'datatables.net-buttons-bs5';
 import 'datatables.net-buttons/js/buttons.html5.mjs';
 import 'datatables.net-responsive-bs5';
 
-import { Page, Text, View, Document, StyleSheet, PDFDownloadLink, Image as PDFImage } from '@react-pdf/renderer';
+import moment from "moment";
+import { BlobProvider,Page, Text, View, Document, StyleSheet, PDFDownloadLink, Image as PDFImage } from '@react-pdf/renderer';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf';
+import workerSrc from 'pdfjs-dist/legacy/build/pdf.worker?url';
 
+// Configurar el worker de pdfjs
+GlobalWorkerOptions.workerSrc = workerSrc;
+
+//$.DataTable = require('datatables.net');
 DataTable.use(DT);
 
-
 export default function Productos({ productos,combos}) {
+    const tableRef = useRef()
+    const styles = StyleSheet.create({
+            sectionheader: {
+                position: 'absolute',
+                top: 75,
+                left: 95,
+                right: 410,
+                textAlign: 'center',
+                color: '#ffffff',
+                
+            },
+            sectionproduct: {
+                position: 'absolute',
+                top: 105,
+                left: 60,
+                right: 330,
+                textAlign: 'left',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: 28
+            },
+            image: {
+                position: 'absolute',
+                top: 120,
+                right: 50,
+                width: 230,
+                zIndex: -2,
+            },
+            sectionprecio: {
+                position: 'absolute',
+                top: 302,
+                left: 185,
+                right: 375,
+                textAlign: 'right',
+                fontSize: 30,
+                color: '#ffffff',
+                fontWeight: 'bold',
+            },
+            sectionfooter: {
+            position: 'absolute',
+            top: 360,
+            left: 60,
+            right: 350,
+            color: '#ffffff',
+            fontSize: 14,
+            textAlign: 'left',
+            },
+        });
+
     const [modalShow, setModalShow] = useState(false);
     const [showToast, setShowToast] = useState(false);
     const [producto, setProducto] = useState([]);
     const [title, setTitle] = useState(null);
     const [nottit,setNottit]=useState("");
     const [notmes,setNotmes]=useState("");
-    const table = useRef();
+    const [showPDFModal, setShowPDFModal] = useState(false);
+    const [reloadKey, setReloadKey] = useState(0);
 
-    const styles = StyleSheet.create({
-        page: {
-            flexDirection: 'column',
-            backgroundColor: '#fff',
-            padding: 30,
-            
-        },
-        sectionheader: {
-            flexDirection: 'row',
-            alignItems: 'center',
-        },
-        sectionfooter: {
-            flexDirection: 'row',
-            fontSize: 12,
-        },
-        section: {
-            flexDirection: 'row',
-            marginTop: 10,
-        },
-        section2: {
-            flexDirection: 'row',
-            marginTop: 10,
-            alignSelf: 'flex-end',
-        },
-        sectionproduct: {
-            flexDirection: 'column',
-            marginBottom: 10,
-            textAlign: 'center',
-        },
-        sectionprecio: {
-            flexDirection: 'column',
-            textAlign: 'right',
-            fontSize: 42,
-            fontWeight: 'bold',
-            color: 'red',
-        },
-        logo: {
-            width: 70,
-  
-        },
-        logo2: {
-            width: 80,
-            alignItems: 'right',
+    const options = useMemo(() => ({
+            serverSide: true, // Enable server-side processing
+            processing: true, // Show a "processing" indicator
+            destroy: true,
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/2.1.7/i18n/es-MX.json',
+            },
+            ajax: {
+                url: `/productos/allproductos?reload=${reloadKey}`,
+                type: 'GET'                        
+            },
+            columns: [
+                { data: 'clave' },
+                { data: 'producto' },
+                { data: 'precio', render: $.fn.dataTable.render.number( ',', '.', 2, '$' )
+                },
+                { data: 'stock' },
+                { data: 'idproducto',
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
+                    render: function(data, type, row, meta) {
+                        return `<button class="btn btn-sm btn-primary edit-btn" data-id="${data}"><em class="fas fa-edit"></em></button>`;
+                    }
+                },
+                { data: 'idproducto',
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
+                    render: function(data, type, row, meta) {
+                        return `<button class="btn btn-sm btn-secondary print-btn" data-id="${data}"><em class="fas fa-print"></em></button>`;
+                    }
+                },
+                { data: 'idproducto',
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
+                    render: function(data, type, row, meta) {
+                        return `<button class="btn btn-sm btn-danger delete-btn" data-id="${data}"><em class="fas fa-trash"></em></button>`;
+                    }
+                },
+            ],
+            drawCallback: function(settings) {
+                const api = this.api();
+                // Attach event listeners to edit buttons
+                api.$('.edit-btn').on('click', function() {
+                    const id = $(this).data('id');
+                    getProducto(id);
+                });
+                // Attach event listeners to print buttons
+                api.$('.print-btn').on('click', function() {
+                    const id = $(this).data('id');
+                    printProducto(id);
+                });
+                // Attach event listeners to delete buttons
+                api.$('.delete-btn').on('click', function() {
+                    const id = $(this).data('id');
+                    if (confirm('¿Estás seguro de que deseas eliminar este producto?')) {
+                        deleteProducto(id);
+                    }
+                });
+            },
+    }), [reloadKey]);
+    
 
-        },
-        image: {
-            height: 300,
-            marginBottom: 10, 
-        },
-        title: {
-            fontSize: 22,
-            fontWeight: 'bold',
-            marginBottom: 5,
-        },
-        subtitle: {
-            fontSize: 20,
-            fontWeight: 'bold',
-            marginBottom: 5,
-        },
-        text: {
-            fontSize: 18,
-            
-        },
-        buttom: {
-            fontSize: 18,
-            cursor: 'pointer',
-        }
-    });
-
-    const ProductPDF = ({ product }) => (
+    function ProductoPDF({product}) {   
+        return (
         <Document>
             <Page
-                size="A4"
-                orientation="landscape"
-                style={styles.page}
+                size={[705,591]}
             >
-                
+                {/* Imagen de fondo */}
+                <View style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: -1,
+                }}>
+                    <PDFImage
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                        }}
+                        src={`${window.location.origin}/flyer.png`}
+                    />
+                </View>
                 <View style={styles.sectionheader}>
-                    <View style={{ flex: 1, textAlign: 'left' }}>
-                        <PDFImage
-                            style={styles.logo}
-                            src={`${window.location.origin}/logo.jpg`} // Ruta completa del logo
-                        />
-                    </View>
-                    <View style={{ flex: 1, textAlign: 'right' }}>
-                        <Text style={styles.title}>Soluciones Tecnológicas y Software</Text>
-                        <Text style={styles.text}>Seguridad, Computo y Desarrollo de software</Text>
-                    </View>
+                    <Text>{product.marca}</Text>
                 </View>
                 <View style={styles.sectionproduct}>
-                    <Text style={styles.subtitle}>{product.producto}</Text>
+                    <Text>{product.producto}</Text>
                 </View>
-                <View style={styles.section}>
-                    <View style={{ flex: 1, textAlign: 'left' }}>
-                        {product.image && (
+                {product.image && (
                             <PDFImage
                                 style={styles.image}
-                                src={`data:image/jpeg;base64,${product.image}`}
+                                src={`data:image/png;base64,${product.image}`}
                             />
-                        )}
-                    </View>
-                    <View style={{ flex: 1, textAlign: 'left' }}>
-                        <Text style={styles.text}>{product.descripcion}</Text>
-                        <View style={styles.sectionprecio}>
-                            <Text> {product.precio.toLocaleString("es-MX", {
-                                        style: "currency", 
-                                        currency: "MXN" 
-                                    })}</Text>
-                            
-                        </View>
-                    </View>
-                </View>
+                )}
+                <View style={styles.sectionprecio}>
+                    <Text>{product.precio.toLocaleString("es-MX", { style: "currency", currency: "MXN" })}</Text>
+                </View>                
                 <View style={styles.sectionfooter}>
-                    <View style={{ flex: 1, textAlign: 'left' }}>
-                        <View style={styles.section}>
-                            <Text>iscgalvez@gmail.com</Text>
-                        </View>
-                        <View style={styles.section}>
-                            <Text>facebook.com/soltecysoft</Text>
-                        </View>
-                    </View>
-                    <View style={{ flex: 1, textAlign: 'right' }}>
-                        <View style={styles.section2}>
-                            <PDFImage
-                                style={styles.logo2}
-                                src={`${window.location.origin}/Tarjetas-2.jpg`} // Ruta completa del logo
-                            />
-                        </View>
-                    </View>
-                </View>
+                    <Text>{product.descripcion}</Text>
+                </View>                
             </Page>
         </Document>
-    );
+    )};
 
     function Createedit({products,selects}) {
         const [values, setValues] = useState({
@@ -236,10 +266,11 @@ export default function Productos({ productos,combos}) {
                 const formData = new FormData(form);
                 axios.post(`/productos`,formData).then((response) => {
                     setModalShow(false);
-                    setShowToast(true)
+                    setShowToast(true);
                     setNottit("Processo realizado");
                     setNotmes(response.data.message);
-                    window.location.reload(false);
+                    // Recargar el DataTable
+                    setReloadKey(prev => prev + 1);
                   }).catch(error => {
                     console.log(error);
                   });
@@ -343,6 +374,116 @@ export default function Productos({ productos,combos}) {
               });
             
     }
+
+    function printProducto(id) {
+        axios.get(`/productos/${id}/edit`).then((response) => {
+                //const productoInfo = response.data;            
+                setProducto(response.data);               
+                setShowPDFModal(true);
+            }).catch(error => {
+            console.log('Error al obtener producto:', error);
+        });
+    }
+
+    function PDFModal({ producto, onClose }) {
+        if (!producto) return null;
+        return (
+            <Modal show={showPDFModal} onHide={onClose} size="lg" centered>
+                <Modal.Header closeButton>
+                    <Modal.Title>Producto #{moment(producto.created_at).format("MM") + producto.idproducto + moment(producto.created_at).format("YY")}</Modal.Title>
+                </Modal.Header>
+                <Modal.Body style={{ height: '600px', overflow: 'auto' }}>
+                    <BlobProvider 
+                        document={<ProductoPDF product={producto} />}
+                        fileName={`Producto_${producto.idproducto}.pdf`}
+                    >
+                        {({ blob, url, loading, error }) => {
+                            if (loading) {
+                                return <div className="text-center"><FontAwesomeIcon icon="fa-solid fa-spinner" spin /> Generando PDF...</div>;
+                            }
+                            if (error) {
+                                return <div className="alert alert-danger">Error al generar el PDF</div>;
+                            }
+
+                            async function exportPdfBlobToImage(blob, filename = `Producto_${producto.idproducto}.png`) {
+                                try {
+                                    const arrayBuffer = await blob.arrayBuffer();
+                                    const loadingTask = getDocument({ data: arrayBuffer });
+                                    const pdfDoc = await loadingTask.promise;
+                                    const page = await pdfDoc.getPage(1);
+                                    const viewport = page.getViewport({ scale: 2 });
+                                    const canvas = document.createElement('canvas');
+                                    const context = canvas.getContext('2d');
+                                    canvas.width = Math.floor(viewport.width);
+                                    canvas.height = Math.floor(viewport.height);
+                                    await page.render({ canvasContext: context, viewport }).promise;
+                                    return new Promise((resolve) => {
+                                        canvas.toBlob((imgBlob) => {
+                                            const urlImg = URL.createObjectURL(imgBlob);
+                                            const a = document.createElement('a');
+                                            a.href = urlImg;
+                                            a.download = filename;
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            a.remove();
+                                            URL.revokeObjectURL(urlImg);
+                                            resolve();
+                                        }, 'image/png', 0.95);
+                                    });
+                                } catch (err) {
+                                    console.error('Error convirtiendo PDF a imagen', err);
+                                    alert('Error al convertir PDF a imagen');
+                                }
+                            }
+
+                            async function downloadPdfAsImageFromUrl(url) {
+                                try {
+                                    const res = await fetch(url);
+                                    const blobFetched = await res.blob();
+                                    await exportPdfBlobToImage(blobFetched);
+                                } catch (err) {
+                                    console.error(err);
+                                    alert('No se pudo descargar el PDF para convertirlo');
+                                }
+                            }
+
+                            return (
+                                <div style={{ height: '100%' }}>
+                                    <div className="d-flex justify-content-end mb-2">
+                                        <Button variant="secondary" size="sm" onClick={() => downloadPdfAsImageFromUrl(url)}>
+                                            <FontAwesomeIcon icon="fa-solid fa-image" /> Exportar como imagen
+                                        </Button>
+                                    </div>
+                                    <iframe
+                                        src={url}
+                                        style={{ width: '100%', height: 'calc(100% - 40px)', border: 'none' }}
+                                        title="PDF Preview"
+                                    />
+                                </div>
+                            );
+                        }}
+                    </BlobProvider>
+                </Modal.Body>
+                <Modal.Footer>
+                    <PDFDownloadLink
+                        document={<ProductoPDF product={producto} />}
+                        fileName={`Producto_${producto.idproducto}.pdf`}
+                    >
+                        {({ blob, url, loading, error }) => (
+                            <Button 
+                                variant="success" 
+                                disabled={loading}
+                            >
+                                <FontAwesomeIcon icon="fa-solid fa-download" /> {loading ? 'Preparando...' : 'Descargar PDF'}
+                            </Button>
+                        )}
+                    </PDFDownloadLink>
+                    <Button variant="secondary" onClick={onClose}>Cerrar</Button>
+                </Modal.Footer>
+            </Modal>
+        );
+    }
+
     function Notify(props) {
         return(
             <ToastContainer
@@ -350,7 +491,7 @@ export default function Productos({ productos,combos}) {
             position="top-end"
             style={{ zIndex: 1 }}
             >
-            <Toast {...props} closeButton={true}  className="d-inline-block m-1" bg="Success"  onClose={() => setShowToast(false)} show={showToast} delay={3000} autohide>
+            <Toast {...props} closebutton="true"  className="d-inline-block m-1" bg="Success"  onClose={() => setShowToast(false)} show={showToast} delay={3000} autohide>
                 {/* <Toast.Header>
                     <img src="holder.js/20x20?text=%20" className="rounded me-2"  alt="" />
                     <strong className="me-auto">{props.title}</strong>
@@ -367,10 +508,17 @@ export default function Productos({ productos,combos}) {
     
     function deleteProducto( idproducto ) {
             axios.delete(`/productos/${idproducto}`).then((response) => {
-               alert(response.data.message);
+               //alert(response.data.message);
+               setShowToast(true);
+               setNotmes(response.data.message);
+               // Recargar el DataTable
+               setReloadKey(prev => prev + 1);
+              }).catch(error => {
+               console.log(error);
               });
-            router.get('/productos');
     }
+    
+
     return (
         <AuthenticatedLayout>
             <Head title="Productos" />
@@ -381,37 +529,13 @@ export default function Productos({ productos,combos}) {
                             <Container>
                                 <Row>
                                     <Col md={12} >   
-                                    {/* <Card>
-                                        <Card.Header as="h5" className="text-center">Productos</Card.Header>
-                                    <Card.Body> */}
                                     <Button variant="primary" size="sm" onClick={() => addProducto()}>
                                         <FontAwesomeIcon icon="fa-solid fa-plus" /> Agregar
                                     </Button>
-                                    <DataTable className="table table-bordered table-striped table-sm" id="productos" 
-                                    ref={table}
-                                    options={{
-                                        language: {
-                                            url: 'https://cdn.datatables.net/plug-ins/2.1.7/i18n/es-MX.json',
-                                        },
-                                        layout: {
-                                            topStart: 'search',
-                                            topEnd: null,
-                                            bottomEnd: {
-                                                paging: {
-                                                    firstLast: false,
-                                                    type: 'numbers'
-                                                }
-                                            },
-                                            bottomStart: 'info',
-                                        
-                                        },
-                                        destroy: true,
-                                        responsive: true,
-                                    }}
-                                    >
+                                    <DataTable key={reloadKey} ref={tableRef} className="table table-bordered table-striped table-sm" id="productos" options={options} >
                                         <thead>
                                             <tr>
-                                            <th className='text-center' style={{width: '18%',}}>Clave</th>
+                                                <th className='text-center' style={{width: '18%',}}>Clave</th>
                                                 <th className='text-center'>Producto</th>
                                                 <th className='text-center' style={{width: '10%',}}>Precio</th>
                                                 <th className='text-center' style={{width: '8%',}}>Stock</th>
@@ -420,37 +544,7 @@ export default function Productos({ productos,combos}) {
                                                 <th className='text-center' style={{width: '5%',}}></th>
                                             </tr>
                                         </thead>
-                                        <tbody>      
-                                            { productos.map( (item) => (
-                                                    <tr key={item.idproducto}>
-                                                        <td className='text-start' style={{width: '18%',}}>{item.clave}</td>
-                                                        <td className='text-start'>{item.producto}</td>
-                                                        <td className='text-end' style={{width: '10%',}}>{item.precio.toLocaleString("es-MX", {
-                                                                                    style: "currency", 
-                                                                                    currency: "MXN" 
-                                                                                    })}
-                                                        </td>
-                                                        <td className='text-center' style={{width: '8%',}}>{item.stock}</td>
-                                                        <td className='text-center' style={{width: '5%',}}><Button variant="link" onClick={() => getProducto(item.idproducto)}><FontAwesomeIcon  style={styles.buttom} icon="fa-solid fa-pen-to-square" /></Button></td>
-                                                        <td className='text-center' style={{width: '5%',}}><Button variant="link"  onClick={() => deleteProducto(item.idproducto)}><FontAwesomeIcon  style={styles.buttom} icon="fa-solid fa-trash"/></Button></td>
-                                                        <td className='text-center' style={{width: '5%',}}>
-                                                            <PDFDownloadLink style={styles.buttom}
-                                                                document={<ProductPDF product={item} />}
-                                                                fileName={`${item.producto}.pdf`}
-                                                            >
-                                                                {({ loading }) =>
-                                                                    loading ? <FontAwesomeIcon icon="fa-solid fa-print" /> : (
-                                                                        <FontAwesomeIcon icon="fa-solid fa-print" />
-                                                                    )
-                                                                }
-                                                            </PDFDownloadLink>
-                                                        </td>
-                                                    </tr>
-                                            )) }
-                                        </tbody>
                                     </DataTable>
-                                    {/* </Card.Body>
-                                    </Card> */}
                                     </Col>
                                 </Row>
                             </Container>
@@ -461,6 +555,12 @@ export default function Productos({ productos,combos}) {
             <Modaladd show={modalShow} title={title} onHide={() => setModalShow(false)} >
                 <Createedit products={producto} selects={combos}/>
             </Modaladd>
+            {showPDFModal && producto && (
+                <PDFModal 
+                    producto={producto}
+                    onClose={() => setShowPDFModal(false)}
+                />
+            )}
             <Notify title={nottit} message={notmes} />
         </AuthenticatedLayout>
     )

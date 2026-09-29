@@ -4,10 +4,9 @@ import { Head } from '@inertiajs/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
 import "bootstrap/dist/css/bootstrap.min.css";
-import React, { useState, useEffect, useRef} from 'react';
+import React, { useState, useEffect, useRef, useMemo} from 'react';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
-import Card from 'react-bootstrap/Card';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
@@ -15,9 +14,9 @@ import Form from 'react-bootstrap/Form';
 import Select from 'react-select'
 import Toast from 'react-bootstrap/Toast';
 import ToastContainer from 'react-bootstrap/ToastContainer';
-import Image from 'react-bootstrap/Image'
 import CloseButton from 'react-bootstrap/CloseButton';
 
+import $ from 'jquery';
 import DataTable from 'datatables.net-react';
 import DT from 'datatables.net-bs5';
 import 'datatables.net-buttons-bs5';
@@ -25,13 +24,18 @@ import 'datatables.net-buttons/js/buttons.html5.mjs';
 import 'datatables.net-responsive-bs5';
 
 import moment from "moment";
+import { BlobProvider,Page, Text, View, Document, StyleSheet, PDFDownloadLink, Image as PDFImage } from '@react-pdf/renderer';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf';
+import workerSrc from 'pdfjs-dist/legacy/build/pdf.worker?url';
 
-import { Page, Text, View, Document, StyleSheet, PDFDownloadLink, Image as PDFImage } from '@react-pdf/renderer';
+// Configurar el worker de pdfjs
+GlobalWorkerOptions.workerSrc = workerSrc;
+
 
 DataTable.use(DT);
 
-
 export default function Cotizaciones({ cotizaciones,productos}) {
+    const tableRef = useRef()
     const styles = StyleSheet.create({
         page: {
             flexDirection: 'column',
@@ -107,7 +111,85 @@ export default function Cotizaciones({ cotizaciones,productos}) {
     const [idcot, setIdcot] = useState("");
     const [det, setDet] = useState([]);
     const [showDetModal, setShowDetModal] = useState(false);
+    const [cotizacionData, setCotizacionData] = useState(null);
+    const [showPDFModal, setShowPDFModal] = useState(false);
+    const [reloadKey, setReloadKey] = useState(0);
 
+    const options = useMemo(() => ({
+                serverSide: true, // Enable server-side processing
+                processing: true, // Show a "processing" indicator
+                destroy: true,
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/2.1.7/i18n/es-MX.json',
+                },
+                ajax: {
+                    url: `/cotizaciones/allcotizaciones?reload=${reloadKey}`,
+                    type: 'GET'                        
+                },
+                columns: [
+                    { data: 'idcotizacion' },
+                    { data: 'nombre_cliente' },
+                    { data: 'created_at' },
+                    { data: 'idcotizacion',
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-center',
+                        render: function(data, type, row, meta) {
+                            return `<button class="btn btn-sm btn-primary edit-btn" data-id="${data}"><em class="fas fa-edit"></em></button>`;
+                        }
+                    },
+                    { data: 'idcotizacion',
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-center',
+                        render: function(data, type, row, meta) {
+                            return `<button class="btn btn-sm btn-primary add-btn" data-id="${data}"><em class="fas fa-shopping-cart"></em></button>`;
+                        }
+                    },
+                    { data: 'idcotizacion',
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-center',
+                        render: function(data, type, row, meta) {
+                            return `<button class="btn btn-sm btn-secondary print-btn" data-id="${data}"><em class="fas fa-print"></em></button>`;
+                        }
+                    },
+                    { data: 'idcotizacion',
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-center',
+                        render: function(data, type, row, meta) {
+                            return `<button class="btn btn-sm btn-danger delete-btn" data-id="${data}"><em class="fas fa-trash"></em></button>`;
+                        }
+                    },
+                ],
+                drawCallback: function(settings) {
+                    const api = this.api();
+                    // Attach event listeners to edit buttons
+                    api.$('.edit-btn').on('click', function() {
+                        const id = $(this).data('id');
+                        getCotizacion(id);
+                    });
+                    // Attach event listeners to add buttons
+                    api.$('.add-btn').on('click', function() {
+                        const id = $(this).data('id');
+                        detCotizacion(id);
+                    });
+                    // Attach event listeners to print buttons
+                    api.$('.print-btn').on('click', function() {
+                        const id = $(this).data('id');
+                        printCotizacion(id);
+                    });
+                    // Attach event listeners to delete buttons
+                    api.$('.delete-btn').on('click', function() {
+                        const id = $(this).data('id');
+                        if (confirm('¿Estás seguro de que deseas eliminar esta cotización?')) {
+                            deleteCotizacion(id);
+                        }
+                    });
+                },
+        }),[reloadKey]);
+    
     function Createedit({cot}) {
 
         const [values, setValues] = useState({
@@ -180,58 +262,6 @@ export default function Cotizaciones({ cotizaciones,productos}) {
             );
     }
 
-    // function CotDet({idcot,det,productos}){
-    //     const [values, setValues] = useState([]);
-    //     function handleSubmitdet(e) {
-    //         e.preventDefault()
-    //         const form = e.target;
-    //         const formData = new FormData(form);
-    //         axios.post(`/cotizaciones`,formData).then((response) => {
-    //             setModalShow(false);
-    //             setShowToast(true)
-    //             setNottit("Processo realizado");
-    //             setNotmes(response.data.message);
-    //             window.location.reload(false);
-    //             }).catch(error => {
-    //             console.log(error);
-    //             });                
-    //     }
-    //     function handleSelectChange(name, selectedOption) {
-    //         setValues({ ...values, [name]: selectedOption ? selectedOption.value : 0 });
-    //     }
-    //     function handleChangedet(e) {
-    //         const { name, value } = e.target;
-    //         setValues({ ...values, [name]: value });
-    //     }
-    //     return (      
-    //         <Form onSubmit={handleSubmitdet} encType="multipart/form-data">
-    //             <Form.Control type="hidden" id="idcotizacion" name="idcotizacion" value={idcot} />
-    //             <Row>
-    //                 <Col md={12}>
-    //                     <Form.Label htmlFor="producto">Producto:</Form.Label>
-    //                     <Select id="producto" name="producto" 
-    //                         isClearable={true}
-    //                         isSearchable={true}
-    //                         value={productos.find(option => option.value === productos.idproducti)}
-    //                         options={productos.producto}
-    //                         onChange={(selectedOption) => handleSelectChange('idproducto', selectedOption)}
-    //                         placeholder="Seleccionar categoria"/>
-    //                     <Form.Label htmlFor="cantidad">Cantidad:</Form.Label>
-    //                     <Form.Control type="text" id="cantidad" name="cantidad"  onChange={handleChangedet} />
-    //                 </Col>
-    //             </Row>
-    //             <Row>
-    //                 <Col  md={12} className="pt-3 ">
-    //                     <div className="d-flex gap-2 mb-2 text-end">
-    //                         <Button type="submit" variant="primary">Agregar</Button>   
-    //                         <Button variant="secondary" onClick={() => closeCotizacion()}>Cerrar</Button>
-    //                     </div> 
-    //                 </Col>
-    //             </Row>
-    //         </Form>
-    //     );
-    // }
-
     function Modaladd(props) {
         return (
             <Modal {...props} size="lg">
@@ -277,6 +307,24 @@ export default function Cotizaciones({ cotizaciones,productos}) {
         });            
     }
 
+    function printCotizacion(id) {
+        axios.get(`/cotizaciones/${id}/edit`).then((response) => {
+            const cotizacionInfo = response.data;
+            axios.get(`/cotizaciones/${id}/det`).then((detailResponse) => {
+                const detalles = detailResponse.data;
+                setCotizacionData({
+                    cotizacion: cotizacionInfo,
+                    detalles: detalles
+                });
+                setShowPDFModal(true);
+            }).catch(error => {
+                console.log('Error al obtener detalles:', error);
+            });
+        }).catch(error => {
+            console.log('Error al obtener cotización:', error);
+        });
+    }
+
     function Notify(props) {
         return(
             <ToastContainer
@@ -299,6 +347,56 @@ export default function Cotizaciones({ cotizaciones,productos}) {
             alert(response.data.message);
         });
         router.get('/cotizaciones');
+    }
+
+    function PDFModal({ cotizacionData, onClose }) {
+        if (!cotizacionData) return null;
+        
+        return (
+            <Modal show={showPDFModal} onHide={onClose} size="lg" centered>
+                <Modal.Header closeButton>
+                    <Modal.Title>Cotización #{moment(cotizacionData.cotizacion.created_at).format("MM") + cotizacionData.cotizacion.idcotizacion + moment(cotizacionData.cotizacion.created_at).format("YY")}</Modal.Title>
+                </Modal.Header>
+                <Modal.Body style={{ height: '600px', overflow: 'auto' }}>
+                    <BlobProvider 
+                        document={<CotizacionPDF cotizacion={cotizacionData.cotizacion} detalles={cotizacionData.detalles}/>}
+                        fileName={`Cotizacion_${cotizacionData.cotizacion.idcotizacion}.pdf`}
+                    >
+                        {({ blob, url, loading, error }) => {
+                            if (loading) {
+                                return <div className="text-center"><FontAwesomeIcon icon="fa-solid fa-spinner" spin /> Generando PDF...</div>;
+                            }
+                            if (error) {
+                                return <div className="alert alert-danger">Error al generar el PDF</div>;
+                            }
+                            return (
+                                <iframe
+                                    src={url}
+                                    style={{ width: '100%', height: '100%', border: 'none' }}
+                                    title="PDF Preview"
+                                />
+                            );
+                        }}
+                    </BlobProvider>
+                </Modal.Body>
+                <Modal.Footer>
+                    <PDFDownloadLink
+                        document={<CotizacionPDF cotizacion={cotizacionData.cotizacion} detalles={cotizacionData.detalles}/>}
+                        fileName={`Cotizacion_${cotizacionData.cotizacion.idcotizacion}.pdf`}
+                    >
+                        {({ blob, url, loading, error }) => (
+                            <Button 
+                                variant="success" 
+                                disabled={loading}
+                            >
+                                <FontAwesomeIcon icon="fa-solid fa-download" /> {loading ? 'Preparando...' : 'Descargar PDF'}
+                            </Button>
+                        )}
+                    </PDFDownloadLink>
+                    <Button variant="secondary" onClick={onClose}>Cerrar</Button>
+                </Modal.Footer>
+            </Modal>
+        );
     }
 
     function CotDetModal({ idcot, det, productos, onClose }) {
@@ -449,7 +547,7 @@ export default function Cotizaciones({ cotizaciones,productos}) {
         );
     }
 
-    function CotizacionPDF({ cotizacion, detalles }) {
+    function CotizacionPDF({ cotizacion, detalles }) {   
         return (
             <Document>
                 <Page size="A4" style={styles.page}>
@@ -516,6 +614,8 @@ export default function Cotizaciones({ cotizaciones,productos}) {
                                     {detalle.producto}
                                     {"\n"}
                                     <Text style={{ fontSize:8 }}>{detalle.descripcion}</Text>
+                                    {"\n"}
+                                    <Text style={{ fontSize:8 }}> { detalle.clave } </Text>
                                 </Text>
                                 <Text style={{ flex: 1, fontSize: 10, textAlign: 'center' }}>{detalle.cantidad}</Text>
                                 <Text style={{ flex: 1, fontSize: 10, textAlign: 'right' }}>{detalle.precio.toFixed(2)}</Text>
@@ -579,71 +679,30 @@ export default function Cotizaciones({ cotizaciones,productos}) {
                         <div className="p-6 text-gray-900">
                             <Container>
                                 <Row>
-                                <Col md={12} >   
-                                    <Button variant="primary" size="sm" onClick={() => addCotizacion()}>
-                                        <FontAwesomeIcon icon="fa-solid fa-plus" /> Agregar
-                                    </Button>
-                                    <DataTable className="table table-bordered table-striped table-sm" id="cotizaciones" 
-                                    ref={table}
-                                    options={{
-                                        language: {
-                                            url: 'https://cdn.datatables.net/plug-ins/2.1.7/i18n/es-MX.json',
-                                        },
-                                        layout: {
-                                            topStart: 'search',
-                                            topEnd: null,
-                                            bottomEnd: {
-                                                paging: {
-                                                    firstLast: false,
-                                                    type: 'numbers'
-                                                }
-                                            },
-                                            bottomStart: 'info',
-                                        
-                                        },
-                                        destroy: true,
-                                        responsive: true,
-                                    }}
-                                    >
-                                        <thead>
-                                            <tr>
-                                            <th className='text-center' style={{width: '10%',}}>ID</th>
-                                                <th className='text-center'>Nombre</th>
-                                                <th className='text-center' style={{width: '10%',}}>Fecha</th>
-                                                <th className='text-center' style={{width: '5%',}}></th>
-                                                <th className='text-center' style={{width: '5%',}}></th>v
-                                                <th className='text-center' style={{width: '5%',}}></th>
-                                                <th className='text-center' style={{width: '5%',}}></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>      
-                                            { cotizaciones.map( (item) => (
-                                                    <tr key={item.idcotizacion}>
-                                                        <td className='text-center' style={{width: '10%',}}>{item.idcotizacion}</td>
-                                                        <td className='text-start'>{item.nombre_cliente}</td>
-                                                        <td className='text-center' style={{width: '10%',}}>{ moment(item.created_at).format("DD/MM/YYYY") }</td>
-                                                        <td className='text-center' style={{width: '5%',}}><Button variant="link" onClick={() => getCotizacion(item.idcotizacion)}><FontAwesomeIcon style={styles.buttom} icon="fa-solid fa-pen-to-square" /></Button></td>
-                                                        <td className='text-center' style={{width: '5%',}}><Button variant="link" onClick={() => deleteCotizacion(item.idcotizacion)}><FontAwesomeIcon  style={styles.buttom} icon="fa-solid fa-trash" /></Button></td>
-                                                        <td className='text-center' style={{width: '5%',}}><Button variant="link" onClick={() => detCotizacion(item.idcotizacion)}><FontAwesomeIcon icon="fa-solid fa-cart-plus" style={styles.buttom} /></Button></td>
-                                                        <td className='text-center' style={{width: '5%',}}>
-                                                            <PDFDownloadLink
-                                                                document={<CotizacionPDF cotizacion={item} detalles={det.filter(d => d.idcotizacion === item.idcotizacion)}/>}
-                                                                fileName={`Cotizacion_${item.idcotizacion}.pdf`}
-                                                                style={styles.buttom}
-                                                            >
-                                                                <FontAwesomeIcon icon="fa-solid fa-print" />
-                                                            </PDFDownloadLink>
-                                                        </td>
-                                                    </tr>
-                                            )) }
-                                        </tbody>
-                                    </DataTable>
-                                    {/* </Card.Body>
-                                    </Card> */}
+                                    <Col md={12} >   
+                                        <Button variant="primary" size="sm" onClick={() => addCotizacion()}>
+                                            <FontAwesomeIcon icon="fa-solid fa-plus" /> Agregar
+                                        </Button>
+                                        <DataTable className="table table-bordered table-striped table-sm" id="cotizaciones" 
+                                         key={reloadKey} ref={tableRef}
+                                        options={options}
+                                        >
+                                            <thead>
+                                                <tr>
+                                                <th className='text-center' style={{width: '10%',}}>ID</th>
+                                                    <th className='text-center'>Nombre</th>
+                                                    <th className='text-center' style={{width: '10%',}}>Fecha</th>
+                                                    <th className='text-center' style={{width: '5%',}}></th>
+                                                    <th className='text-center' style={{width: '5%',}}></th>
+                                                    <th className='text-center' style={{width: '5%',}}></th>
+                                                    <th className='text-center' style={{width: '5%',}}></th>
+                                                </tr>
+                                            </thead>
+                                        </DataTable>
                                     </Col>
                                 </Row>
                             </Container>
-                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -656,6 +715,12 @@ export default function Cotizaciones({ cotizaciones,productos}) {
                     det={det}
                     productos={productos}
                     onClose={() => setShowDetModal(false)}
+                />
+            )}
+            {showPDFModal && cotizacionData && (
+                <PDFModal 
+                    cotizacionData={cotizacionData}
+                    onClose={() => setShowPDFModal(false)}
                 />
             )}
             <Notify title={nottit} message={notmes} />

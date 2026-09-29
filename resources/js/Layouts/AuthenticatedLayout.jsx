@@ -42,6 +42,12 @@ export default function AuthenticatedLayout({ header, children }) {
                                 >
                                     Cotizaciones
                                 </NavLink>
+                                <NavLink
+                                   href={route('ventas.index')}
+                                   active={route().current('ventas.index')}
+                                >
+                                    Ventas
+                                </NavLink>
                             </div>
                         </div>
 

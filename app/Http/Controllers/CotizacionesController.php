@@ -9,15 +9,29 @@ use App\Models\Cotizaciones;
 use App\Models\Cotizacionesdet;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Yajra\DataTables\DataTables;
 
 class CotizacionesController extends Controller
 {
     public function index()
     {
         return Inertia::render('Productos/Cotizaciones', [
-            'cotizaciones' => Cotizaciones::with('detalles')->get(),
-            'productos' => Productos::where('estado', 1)->select('idproducto as value', 'producto as label', 'precio')->get(),
+            'cotizaciones' => null,
+            'productos' => Productos::where('estado', 1)->select( DB::raw('idproducto value'), 
+                                                                  DB::raw("clave|| ' ' || producto|| ' ' || cast(precio as varchar(10)) label"),
+                                                                  'precio')
+                                                        ->get()
         ]);
+    }
+
+    public function allcotizaciones(Request $request)
+    {
+        if ($request->ajax()) {
+            $data = Cotizaciones::with('detalles')->select('idcotizacion','nombre_cliente','created_at')->get(); // Query your data
+            return DataTables::of($data)
+                ->make(true); // Return the DataTables-formatted JSON response
+        }
     }
 
     public function store(Request $request)
@@ -61,6 +75,7 @@ class CotizacionesController extends Controller
                                         'precio',
                                         'descuento',
                                         'descripcion',
+                                        DB::raw('(select clave from productos where idproducto=cotizaciones_detalle.idproducto) as clave'),
                                         DB::raw('(select producto from productos where idproducto=cotizaciones_detalle.idproducto) as producto'),
                                         DB::raw('(select descripcion from productos where idproducto=cotizaciones_detalle.idproducto) as descripcion')
                                     )
@@ -135,11 +150,34 @@ class CotizacionesController extends Controller
                                         'cantidad',
                                         'precio',
                                         'descuento',
+                                        DB::raw('(select clave from productos where idproducto=cotizaciones_detalle.idproducto) as clave'),
                                         DB::raw('(select producto from productos where idproducto=cotizaciones_detalle.idproducto) as producto'),
                                         DB::raw('(select descripcion from productos where idproducto=cotizaciones_detalle.idproducto) as descripcion')
                                     )
                                     ->get();
         return response()->json($detalles);
+    }
+
+    public function generateCot($id)
+    {
+        $data = Cotizacionesdet::where('idcotizacion', $id)
+                                    ->select(
+                                        'idcotdet',
+                                        'idcotizacion',
+                                        'idproducto',
+                                        'cantidad',
+                                        'precio',
+                                        'descuento',
+                                        DB::raw('(select clave from productos where idproducto=cotizaciones_detalle.idproducto) as clave'),
+                                        DB::raw('(select producto from productos where idproducto=cotizaciones_detalle.idproducto) as producto'),
+                                        DB::raw('(select descripcion from productos where idproducto=cotizaciones_detalle.idproducto) as descripcion')
+                                    )
+                                    ->get();
+        $pdf= new PDF();
+        $pdf = Pdf::loadView('cotizacion', ['data'=>$data]);
+        $pdf->render();
+        return $pdf->stream('cotizacion_' . $id . '.pdf'); // Stream to the browser
+        // or return $pdf->download('invoice.pdf'); // Force download
     }
  
 }

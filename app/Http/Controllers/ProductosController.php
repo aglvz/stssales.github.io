@@ -9,6 +9,9 @@ use App\Models\Proveedores;
 use Inertia\Inertia;
 use App\Models\Productos;
 use Illuminate\Http\Request;
+use Yajra\DataTables\DataTables;
+
+use function PHPUnit\Framework\isEmpty;
 
 class ProductosController extends Controller
 {
@@ -25,8 +28,15 @@ class ProductosController extends Controller
             'marca' => $marca,
             'proveedor' => $proveedor
         ];
+        // $productos= Productos::select(
+        //     'idproducto',
+        //     'clave',
+        //     'producto',
+        //     'precio',
+        //     'stock')->where('estado', 1)->get();
+
         return Inertia::render('Productos/Productos', [
-            'productos' => Productos::where('estado',1)->get(),
+            'productos' => null,
             'combos' => $data
         ]);
     }
@@ -34,9 +44,13 @@ class ProductosController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function allproductos()
+    public function allproductos(Request $request)
     {
-        return response()->json(['data' => Productos::where('estado',1)->get()]);
+        if ($request->ajax()) {
+            $data = Productos::select(['idproducto', 'clave', 'producto', 'precio', 'stock'])->where('estado', 1)->get(); // Query your data
+            return DataTables::of($data)
+                ->make(true); // Return the DataTables-formatted JSON response
+        }
     }
 
     /**
@@ -46,13 +60,10 @@ class ProductosController extends Controller
     {
         if($request->file('imagen')==null)
         {
-            $file = Productos::where('idproducto', $request->idproducto)->first();
-            $file = $file->image;
+            $fileimg = Productos::where('idproducto', $request->idproducto)->first();
         }
-        else
-        {
-            $file = base64_encode(file_get_contents($request->file('imagen')));
-        }
+
+        $file = ($request->file('imagen')!=null)? base64_encode(file_get_contents($request->file('imagen'))):(empty($fileimg->image)?null:$fileimg->image);
         Productos::updateOrCreate(
             ['idproducto'=> $request->idproducto],
             ['producto' => $request->producto,
